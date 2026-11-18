@@ -5,15 +5,16 @@
   "type": "module",
   "description": "YZakkartOS: una computadora ficticia dentro del navegador, con blog compartido y terminal.",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "node scripts/build-api.mjs && vite",
+    "build": "node scripts/build-api.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "vitest run",
     "db:schema": "turso db shell yzakkart-os < lib/schema.sql",
-    "db:seed": "turso db shell yzakkart-os < lib/seed.sql"
+    "db:seed": "turso db shell yzakkart-os < lib/seed.sql",
+    "build:api": "node scripts/build-api.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
@@ -25,6 +26,7 @@
     "@vercel/node": "^5.1.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "esbuild": "^0.25.12"
   }
 }

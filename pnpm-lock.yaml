@@ -24,6 +24,9 @@ importers:
       '@vercel/node':
         specifier: ^5.1.0
         version: 5.10.2(rollup@4.68.5)
+      esbuild:
+        specifier: ^0.25.12
+        version: 0.25.12
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
