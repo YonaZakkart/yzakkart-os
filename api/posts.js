@@ -70,7 +70,7 @@ async function usuarioDeSesion(req) {
   const token = tokenDe(req);
   if (!token) return null;
   const resultado = await getDb().execute({
-    sql: `SELECT u.id, u.username, u.is_guest
+    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token]
@@ -80,7 +80,9 @@ async function usuarioDeSesion(req) {
   return {
     id: Number(fila.id),
     username: String(fila.username),
-    is_guest: Number(fila.is_guest) === 1 ? 1 : 0
+    is_guest: Number(fila.is_guest) === 1 ? 1 : 0,
+    badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
+    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
   };
 }
 async function requireUser(req, res) {
@@ -150,7 +152,7 @@ function parsearListaIds(valor) {
 
 // server/posts.ts
 var CAMPOS_POST = `p.id, p.user_id, p.title, p.body, (p.image IS NOT NULL) AS hasImage,
-       p.created_at, p.updated_at, u.username`;
+       p.created_at, p.updated_at, u.username, u.badge_gold, u.badge_yz`;
 function marcadores(cantidad) {
   return Array.from({ length: cantidad }, () => "?").join(",");
 }
@@ -210,28 +212,26 @@ function armarPublicacion(fila, reacciones, comentarios, mias) {
     updated_at: fila.updated_at ? String(fila.updated_at) : null,
     reactiones: reacciones.get(id) ?? {},
     miReaccion: mias.get(id) ?? null,
-    comentarios: comentarios.get(id) ?? 0
+    comentarios: comentarios.get(id) ?? 0,
+    badge_gold: Number(fila.badge_gold) === 1,
+    badge_yz: Number(fila.badge_yz) === 1
   };
 }
 async function listar(req, res) {
   const limitePedido = entero(req.query.limit) ?? LIMITES.lotePorDefecto;
   const limite = Math.min(Math.max(limitePedido, 1), LIMITES.loteMax);
   const excluir = parsearListaIds(req.query.exclude);
+  const orden = texto(req.query.order);
   const db = getDb();
-  const consulta = (excluyendo) => {
-    const filtro = excluyendo.length > 0 ? `WHERE p.id NOT IN (${marcadores(excluyendo.length)})` : "";
-    return db.execute({
-      sql: `SELECT ${CAMPOS_POST}
-            FROM posts p JOIN users u ON u.id = p.user_id
-            ${filtro}
-            ORDER BY RANDOM() LIMIT ?`,
-      args: [...excluyendo, limite]
-    });
-  };
-  let resultado = await consulta(excluir);
-  if (resultado.rows.length === 0 && excluir.length > 0) {
-    resultado = await consulta([]);
-  }
+  const criterio = orden === "antiguos" ? "p.created_at ASC, p.id ASC" : orden === "comentados" ? "(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) DESC, p.created_at DESC" : "p.created_at DESC, p.id DESC";
+  const filtro = excluir.length > 0 ? `WHERE p.id NOT IN (${marcadores(excluir.length)})` : "";
+  const resultado = await db.execute({
+    sql: `SELECT ${CAMPOS_POST}
+          FROM posts p JOIN users u ON u.id = p.user_id
+          ${filtro}
+          ORDER BY ${criterio} LIMIT ?`,
+    args: [...excluir, limite]
+  });
   const filas = resultado.rows;
   const ids = filas.map((f) => Number(f.id));
   const usuario = await usuarioDeSesion(req);
@@ -240,7 +240,7 @@ async function listar(req, res) {
     conteosDeComentarios(ids),
     reaccionesPropias(usuario?.id, ids)
   ]);
-  const posts = filas.map((f) => armarPublicacion(f, reacciones, comentarios, mias)).sort((a, b) => a.created_at < b.created_at ? 1 : -1);
+  const posts = filas.map((f) => armarPublicacion(f, reacciones, comentarios, mias));
   ok(res, { posts });
 }
 async function detalle(req, res) {

@@ -1,6 +1,7 @@
 import type {
   Comentario,
   Estadisticas,
+  OrdenFeed,
   Publicacion,
   SesionIniciada,
   Usuario,
@@ -67,6 +68,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ code }),
     }),
+  reenviar: () =>
+    pedir<{ code: string; expiresAt: string }>('/api/auth?action=reenviar', { method: 'POST' }),
+  insignia: (metodo: 'token' | 'estrella', token?: string) =>
+    pedir<{ user: Usuario }>('/api/auth?action=insignia', {
+      method: 'POST',
+      body: JSON.stringify({ metodo, ...(token ? { token } : {}) }),
+    }),
   login: (username: string, password: string) =>
     pedir<SesionIniciada>('/api/auth?action=login', {
       method: 'POST',
@@ -75,8 +83,12 @@ export const api = {
   salir: () => pedir<{ ok: boolean }>('/api/auth?action=logout', { method: 'POST' }),
 
   /* --- Publicaciones --- */
-  listarPosts: (exclude: number[] = [], limit = 10) => {
-    const parametros = new URLSearchParams({ action: 'list', limit: String(limit) });
+  listarPosts: (exclude: number[] = [], limit = 10, order: OrdenFeed = 'recientes') => {
+    const parametros = new URLSearchParams({
+      action: 'list',
+      limit: String(limit),
+      order,
+    });
     if (exclude.length > 0) parametros.set('exclude', exclude.join(','));
     return pedir<{ posts: Publicacion[] }>(`/api/posts?${parametros.toString()}`);
   },

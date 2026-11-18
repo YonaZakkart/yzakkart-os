@@ -26,6 +26,9 @@ INSERT INTO users (username, password_hash, is_guest) VALUES
   ('tu_yo_del_futuro', NULL, 0),
   ('el_memo', NULL, 0);
 
+-- Una cuenta de ejemplo con insignia dorada, para que el feed la muestre.
+UPDATE users SET badge_gold = 1 WHERE username = 'ana_segura';
+
 -- ------------------------------------------------------------
 -- Publicaciones
 -- ------------------------------------------------------------

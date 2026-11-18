@@ -13,6 +13,8 @@ interface FilaComentario {
   body: string;
   created_at: string;
   updated_at: string | null;
+  badge_gold: number;
+  badge_yz: number;
 }
 
 const CAMPOS = 'c.id, c.post_id, c.user_id, c.body, c.created_at, c.updated_at, u.username';
@@ -72,6 +74,8 @@ function armar(
     updated_at: fila.updated_at ? String(fila.updated_at) : null,
     reactiones: reacciones.get(id) ?? {},
     miReaccion: mias.get(id) ?? null,
+    badge_gold: Number(fila.badge_gold) === 1,
+    badge_yz: Number(fila.badge_yz) === 1,
   };
 }
 

@@ -2,7 +2,11 @@ export interface Usuario {
   id: number;
   username: string;
   is_guest: 0 | 1;
+  badge_gold: 0 | 1;
+  badge_yz: 0 | 1;
 }
+
+export type OrdenFeed = 'recientes' | 'antiguos' | 'comentados';
 
 export interface Publicacion {
   id: number;
@@ -16,6 +20,8 @@ export interface Publicacion {
   reactiones: Record<string, number>;
   miReaccion: string | null;
   comentarios: number;
+  badge_gold: boolean;
+  badge_yz: boolean;
 }
 
 export interface Comentario {
@@ -28,6 +34,8 @@ export interface Comentario {
   updated_at: string | null;
   reactiones: Record<string, number>;
   miReaccion: string | null;
+  badge_gold: boolean;
+  badge_yz: boolean;
 }
 
 export interface Estadisticas {

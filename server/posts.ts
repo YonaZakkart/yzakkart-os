@@ -20,10 +20,12 @@ interface FilaPost {
   hasImage: number;
   created_at: string;
   updated_at: string | null;
+  badge_gold: number;
+  badge_yz: number;
 }
 
 const CAMPOS_POST = `p.id, p.user_id, p.title, p.body, (p.image IS NOT NULL) AS hasImage,
-       p.created_at, p.updated_at, u.username`;
+       p.created_at, p.updated_at, u.username, u.badge_gold, u.badge_yz`;
 
 function marcadores(cantidad: number): string {
   return Array.from({ length: cantidad }, () => '?').join(',');
@@ -103,6 +105,8 @@ function armarPublicacion(
     reactiones: reacciones.get(id) ?? {},
     miReaccion: mias.get(id) ?? null,
     comentarios: comentarios.get(id) ?? 0,
+    badge_gold: Number(fila.badge_gold) === 1,
+    badge_yz: Number(fila.badge_yz) === 1,
   };
 }
 
@@ -110,24 +114,24 @@ async function listar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const limitePedido = entero(req.query.limit) ?? LIMITES.lotePorDefecto;
   const limite = Math.min(Math.max(limitePedido, 1), LIMITES.loteMax);
   const excluir = parsearListaIds(req.query.exclude);
+  const orden = texto(req.query.order);
   const db = getDb();
 
-  const consulta = (excluyendo: number[]) => {
-    const filtro =
-      excluyendo.length > 0 ? `WHERE p.id NOT IN (${marcadores(excluyendo.length)})` : '';
-    return db.execute({
-      sql: `SELECT ${CAMPOS_POST}
-            FROM posts p JOIN users u ON u.id = p.user_id
-            ${filtro}
-            ORDER BY RANDOM() LIMIT ?`,
-      args: [...excluyendo, limite],
-    });
-  };
+  const criterio =
+    orden === 'antiguos'
+      ? 'p.created_at ASC, p.id ASC'
+      : orden === 'comentados'
+        ? '(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) DESC, p.created_at DESC'
+        : 'p.created_at DESC, p.id DESC';
 
-  let resultado = await consulta(excluir);
-  if (resultado.rows.length === 0 && excluir.length > 0) {
-    resultado = await consulta([]);
-  }
+  const filtro = excluir.length > 0 ? `WHERE p.id NOT IN (${marcadores(excluir.length)})` : '';
+  const resultado = await db.execute({
+    sql: `SELECT ${CAMPOS_POST}
+          FROM posts p JOIN users u ON u.id = p.user_id
+          ${filtro}
+          ORDER BY ${criterio} LIMIT ?`,
+    args: [...excluir, limite],
+  });
 
   const filas = resultado.rows as unknown as FilaPost[];
   const ids = filas.map((f) => Number(f.id));
@@ -138,9 +142,7 @@ async function listar(req: VercelRequest, res: VercelResponse): Promise<void> {
     reaccionesPropias(usuario?.id, ids),
   ]);
 
-  const posts = filas
-    .map((f) => armarPublicacion(f, reacciones, comentarios, mias))
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const posts = filas.map((f) => armarPublicacion(f, reacciones, comentarios, mias));
 
   ok(res, { posts });
 }
