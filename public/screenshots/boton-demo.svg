@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="190" height="42" viewBox="0 0 190 42" role="img" aria-label="Probar la demo">
+  <rect x="1" y="1" width="188" height="40" rx="9" fill="#141109" stroke="#e3b648" stroke-width="1.5" />
+  <text x="95" y="27" text-anchor="middle" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="15" font-weight="600" fill="#e3b648">▶ Probar demo</text>
+</svg>

@@ -1,10 +1,14 @@
 # YZakkartOS
 
-Una computadora completa dentro del navegador.
+Una computadora completa dentro del navegador
+
+<p align="center">
+  <img src="public/screenshots/captura-banner.webp" alt="YZakkartOS con la terminal y YZakkart-Blog abiertos" width="100%" />
+</p>
 
 El sitio abre en una mesa con una PC apagada. Al encenderla, el navegador se convierte en
 **YZakkartOS**: un escritorio con ventanas, un navegador que abre **YZakkart-Blog** (un blog real y
-compartido) y una terminal con comandos y alguna que otra trampa.
+compartido) y una terminal con comandos
 
 - **Sistema**: YZakkartOS (escritorio) · YZakkart Mobile (teléfonos)
 - **Blog**: YZakkart-Blog
@@ -15,23 +19,24 @@ compartido) y una terminal con comandos y alguna que otra trampa.
 
 1. Abre el sitio y haz clic en la PC.
 2. Espera el arranque y abre el icono **Navegador**.
-3. Ya eres `Invitado_XXXX`: pulsa **Publicar**, escribe un título y un texto, guarda.
-4. Abre tu publicación para **editarla**, **comentarla** y **reaccionar**.
-5. Recarga la página: todo sigue ahí.
+3. Ya eres `Invitado_XXXX`: pulsa **Publicar**, escribe un título y un texto, guarda
+4. Abre tu publicación para **editarla**, **comentarla** y **reaccionar**
+5. Recarga la página: todo sigue ahí
+
+<p align="center">
+  <a href="https://yzakkart-os.vercel.app/">
+    <img src="public/screenshots/boton-demo.svg" alt="Probar la demo" width="190" />
+  </a>
+</p>
 
 No hace falta registrarse. Si quieres probar el registro, entra en tu cuenta desde el encabezado del
 blog: el código de verificación se muestra en pantalla (el proyecto no envía correos reales).
-
-## La broma
-
-El blog tiene una publicación que recomienda un comando para "tener más FPS". Ábrela, ve a la
-Terminal y ejecútalo. No borra nada de verdad: apaga la PC virtual.
 
 ## Stack
 
 | Capa | Tecnología |
 |------|------------|
-| Frontend | Vite + TypeScript, DOM y CSS propios (sin framework) |
+| Frontend | Vite + TypeScript, DOM y CSS propios |
 | Backend | Funciones serverless de Vercel (`api/`) |
 | Base de datos | Turso (libSQL) con `@libsql/client` |
 | Contraseñas | bcryptjs |
@@ -79,13 +84,13 @@ turso db shell yzakkart-os < lib/seed.sql
 ```
 
 La semilla borra el contenido actual y crea 12 publicaciones, 25 comentarios y 26 reacciones de
-usuarios ficticios.
+usuarios ficticios
 
 ## Despliegue
 
 1. Importar el repositorio en Vercel (framework **Vite**).
 2. Añadir `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` en Production, Preview y Development.
-3. Deploy. `vercel.json` ya define el build, las funciones y el rewrite del SPA.
+3. Deploy. `vercel.json` ya define el build, las funciones y el rewrite del SPA
 
 ## Estructura
 
@@ -104,4 +109,4 @@ que la función viaja autocontenida.
 
 ## Licencia
 
-Proyecto personal con fines educativos.
+Proyecto personal - Educativo
