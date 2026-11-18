@@ -70,7 +70,7 @@ async function usuarioDeSesion(req) {
   const token = tokenDe(req);
   if (!token) return null;
   const resultado = await getDb().execute({
-    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz
+    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz, u.is_admin
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token]
@@ -82,7 +82,8 @@ async function usuarioDeSesion(req) {
     username: String(fila.username),
     is_guest: Number(fila.is_guest) === 1 ? 1 : 0,
     badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
-    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
+    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0,
+    is_admin: Number(fila.is_admin) === 1 ? 1 : 0
   };
 }
 async function requireUser(req, res) {
@@ -94,6 +95,7 @@ async function requireUser(req, res) {
   return usuario;
 }
 function esPropietario(duenioId, usuario, res) {
+  if (usuario.is_admin === 1) return true;
   if (duenioId !== usuario.id) {
     fail(res, "PROHIBIDO", "Solo puedes modificar lo que t\xFA publicaste.", 403);
     return false;

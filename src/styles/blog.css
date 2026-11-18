@@ -525,6 +525,19 @@
   flex-wrap: wrap;
 }
 
+.dialogo--exito .dialogo__title {
+  margin-bottom: 18px;
+}
+
+.dialogo--exito .dialogo__acciones {
+  justify-content: stretch;
+}
+
+.dialogo--exito .btn {
+  width: 100%;
+  justify-content: center;
+}
+
 .dialogo__acciones a {
   text-decoration: none;
 }

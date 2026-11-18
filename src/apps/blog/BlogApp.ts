@@ -21,7 +21,6 @@ export class BlogApp implements ContextoBlog {
   private botonCuenta: HTMLButtonElement;
   private botonTema: HTMLButtonElement;
   private tema = new Theme();
-  private usuarioActual: Usuario | null = null;
   private vista: Vista | null = null;
 
   constructor(
@@ -91,12 +90,17 @@ export class BlogApp implements ContextoBlog {
   }
 
   private async cargarSesion(): Promise<void> {
+    const antes = sesion.usuario;
     try {
-      this.usuarioActual = await sesion.asegurar();
+      await sesion.asegurar();
     } catch {
-      this.usuarioActual = null;
+      /* sin red: el encabezado queda como invitado */
     }
     this.actualizarEncabezado();
+
+    /* Si la sesión llega después del primer pintado, el feed se rehace
+       para que aparezcan las acciones que dependen de la cuenta. */
+    if (!antes && sesion.usuario && this.vista instanceof FeedView) this.alFeed();
   }
 
   desmontar(): void {
@@ -108,7 +112,8 @@ export class BlogApp implements ContextoBlog {
   /* ---------- ContextoBlog ---------- */
 
   usuario(): Usuario | null {
-    return this.usuarioActual;
+    /* Siempre la sesión viva: adoptar una cuenta nueva se refleja al instante. */
+    return sesion.usuario;
   }
 
   alFeed(): void {
@@ -128,10 +133,11 @@ export class BlogApp implements ContextoBlog {
   }
 
   actualizarEncabezado(): void {
-    const nombre = this.usuarioActual?.username ?? 'invitado';
+    const actual = sesion.usuario;
+    const nombre = actual?.username ?? 'invitado';
     const insignias = crearInsignias({
-      badge_gold: this.usuarioActual?.badge_gold === 1,
-      badge_yz: this.usuarioActual?.badge_yz === 1,
+      badge_gold: actual?.badge_gold === 1,
+      badge_yz: actual?.badge_yz === 1,
     });
 
     this.botonCuenta.replaceChildren(
@@ -140,7 +146,11 @@ export class BlogApp implements ContextoBlog {
       ...(insignias ? [insignias] : []),
     );
     this.botonCuenta.title =
-      this.usuarioActual?.is_guest === 0 ? 'Cuenta verificada' : 'Estás como invitado';
+      actual?.is_guest === 0
+        ? actual.is_admin === 1
+          ? 'Cuenta de administración'
+          : 'Cuenta verificada'
+        : 'Estás como invitado';
   }
 
   /* ---------- Interno ---------- */

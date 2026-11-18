@@ -83,7 +83,7 @@ async function usuarioDeSesion(req) {
   const token = tokenDe(req);
   if (!token) return null;
   const resultado = await getDb().execute({
-    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz
+    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz, u.is_admin
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token]
@@ -95,7 +95,8 @@ async function usuarioDeSesion(req) {
     username: String(fila.username),
     is_guest: Number(fila.is_guest) === 1 ? 1 : 0,
     badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
-    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
+    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0,
+    is_admin: Number(fila.is_admin) === 1 ? 1 : 0
   };
 }
 async function requireUser(req, res) {
@@ -173,7 +174,7 @@ async function crearInvitado() {
       const id = Number(insert.lastInsertRowid);
       const token = await crearSesion(id);
       return {
-        user: { id, username, is_guest: 1, badge_gold: 0, badge_yz: 0 },
+        user: { id, username, is_guest: 1, badge_gold: 0, badge_yz: 0, is_admin: 0 },
         token
       };
     } catch (error) {
@@ -278,11 +279,13 @@ async function handler(req, res) {
             sql: `UPDATE users
                   SET username = ?, password_hash = ?, is_guest = 0,
                       badge_gold = CASE WHEN ? = 1 THEN 1 ELSE badge_gold END,
-                      badge_yz = CASE WHEN ? = 1 THEN 1 ELSE badge_yz END
+                      badge_yz = CASE WHEN ? = 1 THEN 1 ELSE badge_yz END,
+                      is_admin = CASE WHEN ? = 1 THEN 1 ELSE is_admin END
                   WHERE id = ?`,
             args: [
               nuevoNombre,
               String(fila.password_hash),
+              esDuenia ? 1 : 0,
               esDuenia ? 1 : 0,
               esDuenia ? 1 : 0,
               usuario.id
@@ -305,7 +308,8 @@ async function handler(req, res) {
         username: nuevoNombre,
         is_guest: 0,
         badge_gold: esDuenia ? 1 : usuario.badge_gold,
-        badge_yz: esDuenia ? 1 : usuario.badge_yz
+        badge_yz: esDuenia ? 1 : usuario.badge_yz,
+        is_admin: esDuenia ? 1 : usuario.is_admin
       };
       ok(res, { user: actualizado, token });
       return;
@@ -318,7 +322,7 @@ async function handler(req, res) {
         return;
       }
       const resultado = await db.execute({
-        sql: `SELECT id, username, is_guest, password_hash, badge_gold, badge_yz
+        sql: `SELECT id, username, is_guest, password_hash, badge_gold, badge_yz, is_admin
               FROM users WHERE username = ? COLLATE NOCASE AND is_guest = 0`,
         args: [username]
       });
@@ -337,7 +341,8 @@ async function handler(req, res) {
           username: String(fila.username),
           is_guest: 0,
           badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
-          badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
+          badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0,
+          is_admin: Number(fila.is_admin) === 1 ? 1 : 0
         },
         token
       });
@@ -373,10 +378,17 @@ async function handler(req, res) {
           return;
         }
         await db.execute({
-          sql: "UPDATE users SET badge_gold = 1, badge_yz = 1 WHERE id = ?",
+          sql: "UPDATE users SET badge_gold = 1, badge_yz = 1, is_admin = 1 WHERE id = ?",
           args: [usuario.id]
         });
-        ok(res, { user: { ...usuario, badge_gold: 1, badge_yz: 1 } });
+        ok(res, {
+          user: {
+            ...usuario,
+            badge_gold: 1,
+            badge_yz: 1,
+            is_admin: 1
+          }
+        });
         return;
       }
       if (metodo === "estrella") {
