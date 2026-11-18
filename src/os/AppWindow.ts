@@ -82,7 +82,7 @@ export class AppWindow {
   }
 
   montar(): void {
-    this.app.montar(this.cuerpo);
+    this.app.montar(this.cuerpo, () => this.alPedirCierre());
   }
 
   desmontar(): void {
