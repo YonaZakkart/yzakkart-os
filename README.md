@@ -90,11 +90,17 @@ usuarios ficticios.
 ## Estructura
 
 ```
-api/     funciones serverless (auth, posts, comments, reactions, image)
+server/  fuentes de las funciones serverless (auth, posts, comments, reactions, image)
+api/     funciones empaquetadas por esbuild (generadas, se versionan para Vercel)
 lib/     código compartido del servidor (db, auth, validate, http, SQL)
 public/  estáticos (favicon, wallpapers)
 src/     frontend: os/, apps/, models/, services/, styles/
+scripts/ empaquetado de las funciones
 ```
+
+Cada función de `server/` se empaqueta en un único archivo dentro de `api/` con `pnpm build:api`.
+Vercel transpila cada archivo por separado y no resuelve imports relativos sin extensión en ESM, así
+que la función viaja autocontenida.
 
 ## Licencia
 

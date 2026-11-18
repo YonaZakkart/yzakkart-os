@@ -91,7 +91,7 @@ function apiLocal(): Plugin {
         });
 
         try {
-          const modulo = await servidor.ssrLoadModule(`/api/${nombre}.ts`);
+          const modulo = await servidor.ssrLoadModule(`/server/${nombre}.ts`);
           const manejador = modulo.default as (req: unknown, res: unknown) => Promise<void>;
 
           const cuerpo =

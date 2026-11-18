@@ -66,10 +66,10 @@ async function llamar(
 
 describe.skipIf(!hayBase)('API completa contra Turso', () => {
   it('recorre invitado, CRUD, reacciones y registro', async () => {
-    const auth = (await import('../api/auth')).default;
-    const posts = (await import('../api/posts')).default;
-    const comments = (await import('../api/comments')).default;
-    const reactions = (await import('../api/reactions')).default;
+    const auth = (await import('../server/auth')).default;
+    const posts = (await import('../server/posts')).default;
+    const comments = (await import('../server/comments')).default;
+    const reactions = (await import('../server/reactions')).default;
 
     // 1. Invitado
     const invitado = await llamar(auth, { method: 'POST', query: { action: 'guest' } });
@@ -111,7 +111,6 @@ describe.skipIf(!hayBase)('API completa contra Turso', () => {
       body: { postId, body: 'Un comentario de prueba.' },
     });
     expect(comentario.statusCode).toBe(201);
-    const commentId: number = comentario.cuerpo.data.comment.id;
 
     const comentarios = await llamar(comments, {
       method: 'GET',
