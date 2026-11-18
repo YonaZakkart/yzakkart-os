@@ -1,1 +1,242 @@
-/* Estilos de YZakkart Mobile — se completan en feature/yzakkart-mobile */
+/* ============================================================
+   YZakkart Mobile
+   ============================================================ */
+
+.mobile {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--os-bg);
+  color: var(--os-text);
+  font-family: var(--font-ui);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.mobile__fondo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.mobile__fondo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgb(4 6 11 / 0.55),
+    rgb(4 6 11 / 0.2) 40%,
+    rgb(4 6 11 / 0.85)
+  );
+}
+
+.mobile__inicio {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px 18px 26px;
+  min-height: 0;
+}
+
+.mobile__inicio::before {
+  content: "";
+  position: absolute;
+  inset: 18% -10% 12%;
+  background: radial-gradient(ellipse at center, rgb(4 6 11 / 0.72), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.mobile__cabecera {
+  text-align: center;
+  padding-top: 8px;
+}
+
+.mobile__reloj {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 40px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 2px 18px rgb(0 0 0 / 0.6);
+}
+
+.mobile__marca {
+  margin: 2px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgb(240 205 122 / 0.85);
+}
+
+.mobile__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 320px;
+}
+
+.mobile__icono {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 112px;
+  padding: 14px 8px;
+  border-radius: 18px;
+  background: rgb(8 11 18 / 0.42);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  transition: transform 140ms var(--ease-out), background 140ms;
+}
+
+.mobile__icono:active {
+  transform: scale(0.97);
+  background: rgb(8 11 18 / 0.65);
+}
+
+.mobile__icono-art {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(155deg, rgb(227 182 72 / 0.34), rgb(16 22 34 / 0.95));
+  border: 1px solid rgb(227 182 72 / 0.45);
+  color: #f4d99a;
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.5);
+}
+
+.mobile__icono-label {
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile__pie {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 26px;
+  display: flex;
+  justify-content: center;
+}
+
+.mobile__apagar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  background: rgb(8 11 18 / 0.55);
+  border: 1px solid rgb(247 118 142 / 0.35);
+  color: #ffb3c1;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+
+.mobile__inicio[hidden],
+.mobile__app[hidden] {
+  display: none;
+}
+
+/* ---------- App a pantalla completa ---------- */
+
+.mobile__app {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--os-surface);
+  animation: app-in 220ms var(--ease-out);
+}
+
+@keyframes app-in {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.mobile__barra {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0 10px;
+  background: var(--os-titlebar);
+  border-bottom: 1px solid var(--os-border-soft);
+}
+
+.mobile__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  color: var(--os-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mobile__volver:active {
+  background: rgb(227 182 72 / 0.14);
+}
+
+.mobile__titulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--os-text-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mobile__cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.mobile__marco {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* La app ocupa el marco de forma absoluta: evita conflictos de altura
+   entre el contenedor móvil y el layout interno de cada aplicación. */
+.mobile__marco > * {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}

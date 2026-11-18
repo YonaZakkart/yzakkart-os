@@ -1,6 +1,7 @@
 import { BootScreen } from './os/BootScreen';
 import { DeskScene } from './os/DeskScene';
 import { DeviceMode } from './os/DeviceMode';
+import { MobileShell } from './os/MobileShell';
 import { OSShell } from './os/OSShell';
 import { sesion } from './services/session';
 import './styles/tokens.css';
@@ -10,7 +11,7 @@ if (!encontrado) throw new Error('Falta #app en el documento.');
 const raiz: HTMLDivElement = encontrado;
 
 const dispositivo = new DeviceMode();
-let pantalla: DeskScene | BootScreen | OSShell | null = null;
+let pantalla: DeskScene | BootScreen | OSShell | MobileShell | null = null;
 
 function limpiar(): void {
   pantalla?.desmontar();
@@ -27,25 +28,33 @@ function mostrarMesa(): void {
 
 function mostrarArranque(): void {
   limpiar();
-  const arranque = new BootScreen(raiz, () => mostrarEscritorio(), !dispositivo.esEscritorio);
+  const arranque = new BootScreen(raiz, () => mostrarSistema(), !dispositivo.esEscritorio);
   pantalla = arranque;
   arranque.montar();
 }
 
-function mostrarEscritorio(): void {
+function mostrarSistema(): void {
   limpiar();
-  const shell = new OSShell(
-    raiz,
-    () => mostrarMesa(),
-    () => sesion.nombre,
-  );
+
+  const shell = dispositivo.esEscritorio
+    ? new OSShell(
+        raiz,
+        () => mostrarMesa(),
+        () => sesion.nombre,
+      )
+    : new MobileShell(
+        raiz,
+        () => mostrarMesa(),
+        () => sesion.nombre,
+      );
+
   pantalla = shell;
   shell.montar();
 }
 
 /* El cambio de modo no recarga: se rehace la presentación conservando la sesión. */
 dispositivo.alCambiarModo(() => {
-  if (pantalla instanceof OSShell) mostrarEscritorio();
+  if (pantalla instanceof OSShell || pantalla instanceof MobileShell) mostrarSistema();
 });
 
 /* Se prepara la identidad en segundo plano para que el blog abra al instante. */
@@ -58,7 +67,7 @@ try {
 } catch (error) {
   raiz.replaceChildren(
     Object.assign(document.createElement('pre'), {
-      textContent: `FALLO AL INICIAR:\n${(error as Error).message}\n${(error as Error).stack ?? ''}`,
+      textContent: `FALLO AL INICIAR:\n${(error as Error).message}`,
       style:
         'padding:24px;color:#fff;background:#300;font:12px monospace;white-space:pre-wrap;height:100vh;margin:0',
     }),
