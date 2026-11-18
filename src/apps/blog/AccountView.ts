@@ -1,9 +1,12 @@
 import { el } from '../../os/dom';
 import { api } from '../../services/api';
 import { sesion } from '../../services/session';
+import { crearInsignias } from './Insignias';
 import type { ContextoBlog } from './contexto';
 
-/** Registro con verificación falsa, inicio de sesión y cierre de sesión. */
+const REPO = 'https://github.com/YonaZakkart/yzakkart-os';
+
+/** Registro con verificación falsa, insignias, inicio de sesión y cierre. */
 export class AccountView {
   readonly raiz: HTMLElement;
   private panel: HTMLElement;
@@ -30,14 +33,14 @@ export class AccountView {
     const usuario = this.ctx.usuario();
 
     if (usuario && usuario.is_guest === 0) {
-      this.panel.replaceChildren(this.perfil(usuario.username));
+      this.panel.replaceChildren(this.perfil(usuario.username), this.bloqueInsignias());
       return;
     }
 
     this.panel.replaceChildren(
       el('p', {
         clase: 'cuenta__intro',
-        texto: `Estás navegando como ${usuario?.username ?? 'invitado'}. Puedes publicar, comentar y reaccionar así; si creas una cuenta, conservas todo lo que ya hiciste.`,
+        texto: `Estás navegando como ${usuario?.username ?? 'invitado'}. Puedes publicar, comentar y reaccionar así; si creas una cuenta, conservas todo lo que ya hiciste y puedes obtener insignias.`,
       }),
       this.formularioRegistro(),
       el('div', { clase: 'cuenta__sep', texto: 'o' }),
@@ -72,14 +75,124 @@ export class AccountView {
         'div',
         {},
         el('p', { clase: 'perfil__nombre', texto: nombre }),
-        el('p', {
-          clase: 'perfil__nota',
-          texto: 'Cuenta verificada. Tus publicaciones están a tu nombre.',
-        }),
+        el('p', { clase: 'perfil__nota', texto: 'Tus publicaciones están a tu nombre.' }),
       ),
       salir,
     );
   }
+
+  /* ---------- Insignias ---------- */
+
+  private bloqueInsignias(): HTMLElement {
+    const usuario = this.ctx.usuario();
+    const estado = el('div', { clase: 'insignias__estado' });
+
+    const pintarEstado = (): void => {
+      const actual = this.ctx.usuario();
+      const marcas = crearInsignias({
+        badge_gold: actual?.badge_gold === 1,
+        badge_yz: actual?.badge_yz === 1,
+      });
+      estado.replaceChildren(
+        marcas ?? el('span', { clase: 'insignias__ninguna', texto: 'Todavía sin insignias.' }),
+      );
+    };
+    pintarEstado();
+
+    const entradaToken = el('input', {
+      clase: 'campo__input',
+      attrs: {
+        type: 'text',
+        placeholder: 'token del equipo',
+        'aria-label': 'Token de verificación',
+      },
+    });
+    const canjear = el('button', {
+      clase: 'btn btn--ghost',
+      attrs: { type: 'button' },
+      texto: 'Canjear',
+    });
+    const aviso = el('p', { clase: 'aviso', attrs: { 'aria-live': 'polite' } });
+
+    canjear.addEventListener('click', async () => {
+      canjear.disabled = true;
+      aviso.textContent = '';
+      try {
+        const { user } = await api.insignia('token', entradaToken.value.trim());
+        sesion.actualizarUsuario(user);
+        entradaToken.value = '';
+        pintarEstado();
+        this.ctx.actualizarEncabezado();
+      } catch (error) {
+        aviso.textContent = error instanceof Error ? error.message : 'No se pudo canjear.';
+      } finally {
+        canjear.disabled = false;
+      }
+    });
+
+    const obtener = el('button', {
+      clase: 'btn btn--primary',
+      attrs: { type: 'button' },
+      texto: 'Obtener insignia',
+    });
+
+    const dialogo = el('dialog', { clase: 'dialogo' });
+    dialogo.append(
+      el('h3', { clase: 'dialogo__title', texto: 'Obtén tu insignia' }),
+      el('p', {
+        clase: 'dialogo__text',
+        texto:
+          'Pon una estrella en el repositorio oficial de YZakkart-OS para obtener tu insignia.',
+      }),
+      el(
+        'div',
+        { clase: 'dialogo__acciones' },
+        el('button', { clase: 'btn btn--ghost', attrs: { type: 'button' }, texto: 'Ahora no' }),
+        el('a', {
+          clase: 'btn btn--primary',
+          attrs: { href: REPO, target: '_blank', rel: 'noopener noreferrer' },
+          texto: 'Ir al repositorio',
+        }),
+      ),
+    );
+
+    const [cerrar] = Array.from(dialogo.querySelectorAll<HTMLButtonElement>('.btn--ghost'));
+    cerrar?.addEventListener('click', () => dialogo.close());
+
+    const enlace = dialogo.querySelector<HTMLAnchorElement>('a');
+    enlace?.addEventListener('click', async () => {
+      try {
+        const { user } = await api.insignia('estrella');
+        sesion.actualizarUsuario(user);
+        pintarEstado();
+        this.ctx.actualizarEncabezado();
+        dialogo.close();
+      } catch {
+        aviso.textContent = 'No se pudo guardar la insignia. Intenta de nuevo.';
+      }
+    });
+
+    obtener.addEventListener('click', () => dialogo.showModal());
+
+    if (!usuario) return el('div');
+
+    return el(
+      'section',
+      { clase: 'cuenta__bloque insignias' },
+      el('h3', { clase: 'cuenta__sub', texto: 'Insignias' }),
+      el('p', {
+        clase: 'cuenta__intro',
+        texto: 'Tu cuenta puede llevar la insignia dorada y la del equipo de YZakkartOS.',
+      }),
+      estado,
+      el('div', { clase: 'insignias__opciones' }, entradaToken, canjear),
+      aviso,
+      el('div', { clase: 'insignias__pie' }, obtener),
+      dialogo,
+    );
+  }
+
+  /* ---------- Registro ---------- */
 
   private formularioRegistro(): HTMLElement {
     const usuario = el('input', {
@@ -146,7 +259,17 @@ export class AccountView {
     );
   }
 
-  private verificacion(codigo: string, correo: string): HTMLElement {
+  private verificacion(codigoInicial: string, correo: string): HTMLElement {
+    const mensaje = el('p', { clase: 'cuenta__mensaje' });
+    const pintarCodigo = (codigo: string): void => {
+      mensaje.replaceChildren(
+        document.createTextNode('Hemos enviado el código '),
+        el('span', { clase: 'cuenta__codigo-en-linea', texto: codigo }),
+        document.createTextNode(` a tu correo ${correo}`),
+      );
+    };
+    pintarCodigo(codigoInicial);
+
     const entrada = el('input', {
       clase: 'campo__input campo__input--codigo',
       attrs: {
@@ -158,15 +281,16 @@ export class AccountView {
         autocomplete: 'one-time-code',
       },
     });
+
     const aviso = el('p', { clase: 'aviso', attrs: { 'aria-live': 'polite' } });
-    const enviar = el('button', {
+    const verificar = el('button', {
       clase: 'btn btn--primary',
       attrs: { type: 'button' },
       texto: 'Verificar',
     });
 
-    enviar.addEventListener('click', async () => {
-      enviar.disabled = true;
+    verificar.addEventListener('click', async () => {
+      verificar.disabled = true;
       aviso.textContent = '';
       try {
         const sesionNueva = await api.verificar(entrada.value.trim());
@@ -175,7 +299,32 @@ export class AccountView {
         this.pintar();
       } catch (error) {
         aviso.textContent = error instanceof Error ? error.message : 'No se pudo verificar.';
-        enviar.disabled = false;
+        verificar.disabled = false;
+      }
+    });
+
+    const nota = el('p', { clase: 'cuenta__nota', attrs: { hidden: 'true' } });
+    nota.textContent =
+      'Si no has recibido ningún correo es porque ya no tenemos servicio de la prueba gratuita.';
+
+    const reenviar = el('button', {
+      clase: 'enlace',
+      attrs: { type: 'button' },
+      texto: 'Reenviar',
+    });
+    reenviar.addEventListener('click', async () => {
+      reenviar.disabled = true;
+      aviso.textContent = '';
+      try {
+        const { code } = await api.reenviar();
+        pintarCodigo(code);
+        nota.hidden = false;
+        entrada.value = '';
+        entrada.focus();
+      } catch (error) {
+        aviso.textContent = error instanceof Error ? error.message : 'No se pudo reenviar.';
+      } finally {
+        reenviar.disabled = false;
       }
     });
 
@@ -183,18 +332,21 @@ export class AccountView {
       'section',
       { clase: 'cuenta__bloque cuenta__bloque--codigo' },
       el('h3', { clase: 'cuenta__sub', texto: 'Verifica tu correo' }),
+      mensaje,
       el('p', {
         clase: 'cuenta__mensaje',
-        texto: `Hemos enviado el código de verificación al correo ${correo}. Por favor ingrese el código.`,
-      }),
-      el('p', { clase: 'cuenta__codigo', texto: codigo }),
-      el('p', {
-        clase: 'cuenta__nota',
-        texto: 'Código de demostración: este proyecto no envía correos reales.',
+        texto: 'Por favor ingresa el código para verificar tu cuenta',
       }),
       entrada,
       aviso,
-      enviar,
+      verificar,
+      el(
+        'p',
+        { clase: 'cuenta__reenvio' },
+        document.createTextNode('¿No recibiste el código? '),
+        reenviar,
+      ),
+      nota,
     );
   }
 

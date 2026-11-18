@@ -83,7 +83,7 @@ async function usuarioDeSesion(req) {
   const token = tokenDe(req);
   if (!token) return null;
   const resultado = await getDb().execute({
-    sql: `SELECT u.id, u.username, u.is_guest
+    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token]
@@ -93,7 +93,9 @@ async function usuarioDeSesion(req) {
   return {
     id: Number(fila.id),
     username: String(fila.username),
-    is_guest: Number(fila.is_guest) === 1 ? 1 : 0
+    is_guest: Number(fila.is_guest) === 1 ? 1 : 0,
+    badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
+    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
   };
 }
 async function requireUser(req, res) {
@@ -157,6 +159,8 @@ function validarEmail(valor) {
 
 // server/auth.ts
 var MINUTOS_CODIGO = 10;
+var TOKEN_DUENIA = process.env.BADGE_TOKEN ?? "YonaZakkartinYZakkart";
+var CUENTA_DUENIA = "yona_zakkart";
 async function crearInvitado() {
   const db = getDb();
   for (let intento = 0; intento < 6; intento++) {
@@ -168,7 +172,10 @@ async function crearInvitado() {
       });
       const id = Number(insert.lastInsertRowid);
       const token = await crearSesion(id);
-      return { user: { id, username, is_guest: 1 }, token };
+      return {
+        user: { id, username, is_guest: 1, badge_gold: 0, badge_yz: 0 },
+        token
+      };
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : "";
       if (!mensaje.includes("UNIQUE")) throw error;
@@ -264,11 +271,22 @@ async function handler(req, res) {
         return;
       }
       const nuevoNombre = String(fila.new_username);
+      const esDuenia = nuevoNombre.toLowerCase() === CUENTA_DUENIA;
       await db.batch(
         [
           {
-            sql: "UPDATE users SET username = ?, password_hash = ?, is_guest = 0 WHERE id = ?",
-            args: [nuevoNombre, String(fila.password_hash), usuario.id]
+            sql: `UPDATE users
+                  SET username = ?, password_hash = ?, is_guest = 0,
+                      badge_gold = CASE WHEN ? = 1 THEN 1 ELSE badge_gold END,
+                      badge_yz = CASE WHEN ? = 1 THEN 1 ELSE badge_yz END
+                  WHERE id = ?`,
+            args: [
+              nuevoNombre,
+              String(fila.password_hash),
+              esDuenia ? 1 : 0,
+              esDuenia ? 1 : 0,
+              usuario.id
+            ]
           },
           {
             sql: "DELETE FROM pending_verifications WHERE user_id = ?",
@@ -282,7 +300,13 @@ async function handler(req, res) {
         "write"
       );
       const token = await crearSesion(usuario.id);
-      const actualizado = { id: usuario.id, username: nuevoNombre, is_guest: 0 };
+      const actualizado = {
+        id: usuario.id,
+        username: nuevoNombre,
+        is_guest: 0,
+        badge_gold: esDuenia ? 1 : usuario.badge_gold,
+        badge_yz: esDuenia ? 1 : usuario.badge_yz
+      };
       ok(res, { user: actualizado, token });
       return;
     }
@@ -294,7 +318,7 @@ async function handler(req, res) {
         return;
       }
       const resultado = await db.execute({
-        sql: `SELECT id, username, is_guest, password_hash
+        sql: `SELECT id, username, is_guest, password_hash, badge_gold, badge_yz
               FROM users WHERE username = ? COLLATE NOCASE AND is_guest = 0`,
         args: [username]
       });
@@ -308,9 +332,62 @@ async function handler(req, res) {
       const id = Number(fila.id);
       const token = await crearSesion(id);
       ok(res, {
-        user: { id, username: String(fila.username), is_guest: 0 },
+        user: {
+          id,
+          username: String(fila.username),
+          is_guest: 0,
+          badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
+          badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
+        },
         token
       });
+      return;
+    }
+    case "reenviar": {
+      const usuario = await requireUser(req, res);
+      if (!usuario) return;
+      const pendiente = await db.execute({
+        sql: "SELECT user_id FROM pending_verifications WHERE user_id = ?",
+        args: [usuario.id]
+      });
+      if (pendiente.rows.length === 0) {
+        fail(res, "SIN_REGISTRO", "No hay un registro pendiente.", 400);
+        return;
+      }
+      const code = generarCodigo();
+      const expiresAt = new Date(Date.now() + MINUTOS_CODIGO * 6e4).toISOString();
+      await db.execute({
+        sql: "UPDATE pending_verifications SET code = ?, expires_at = ? WHERE user_id = ?",
+        args: [code, expiresAt, usuario.id]
+      });
+      ok(res, { code, expiresAt });
+      return;
+    }
+    case "insignia": {
+      const usuario = await requireUser(req, res);
+      if (!usuario) return;
+      const metodo = texto(cuerpo.metodo);
+      if (metodo === "token") {
+        if (texto(cuerpo.token).trim() !== TOKEN_DUENIA) {
+          fail(res, "TOKEN_INVALIDO", "Ese token no es v\xE1lido.", 400);
+          return;
+        }
+        await db.execute({
+          sql: "UPDATE users SET badge_gold = 1, badge_yz = 1 WHERE id = ?",
+          args: [usuario.id]
+        });
+        ok(res, { user: { ...usuario, badge_gold: 1, badge_yz: 1 } });
+        return;
+      }
+      if (metodo === "estrella") {
+        await db.execute({
+          sql: "UPDATE users SET badge_gold = 1 WHERE id = ?",
+          args: [usuario.id]
+        });
+        ok(res, { user: { ...usuario, badge_gold: 1 } });
+        return;
+      }
+      fail(res, "SOLICITUD_INVALIDA", "M\xE9todo de verificaci\xF3n desconocido.", 400);
       return;
     }
     case "logout": {

@@ -3,6 +3,7 @@ import { el, icono } from '../../os/dom';
 import { sesion } from '../../services/session';
 import { AccountView } from './AccountView';
 import { FeedView } from './FeedView';
+import { crearInsignias } from './Insignias';
 import { PostDetailView } from './PostDetailView';
 import { PostEditorView } from './PostEditorView';
 import { Theme } from './Theme';
@@ -128,9 +129,15 @@ export class BlogApp implements ContextoBlog {
 
   actualizarEncabezado(): void {
     const nombre = this.usuarioActual?.username ?? 'invitado';
+    const insignias = crearInsignias({
+      badge_gold: this.usuarioActual?.badge_gold === 1,
+      badge_yz: this.usuarioActual?.badge_yz === 1,
+    });
+
     this.botonCuenta.replaceChildren(
       el('span', { clase: 'blog__avatar', texto: nombre.slice(0, 1).toUpperCase() }),
       el('span', { clase: 'blog__usuario', texto: nombre }),
+      ...(insignias ? [insignias] : []),
     );
     this.botonCuenta.title =
       this.usuarioActual?.is_guest === 0 ? 'Cuenta verificada' : 'Estás como invitado';

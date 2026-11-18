@@ -1,19 +1,27 @@
-import type { Publicacion } from '../../models/types';
+import type { OrdenFeed, Publicacion } from '../../models/types';
 import { el, icono } from '../../os/dom';
 import { api, urlImagen } from '../../services/api';
+import { crearInsignias } from './Insignias';
 import type { ContextoBlog } from './contexto';
 import { fechaRelativa } from './tiempo';
 
 const LOTE = 10;
 
-/** Feed de publicaciones con lotes que no repiten lo ya visible. */
+const ORDENES: { valor: OrdenFeed; etiqueta: string }[] = [
+  { valor: 'recientes', etiqueta: 'Más recientes' },
+  { valor: 'antiguos', etiqueta: 'Más antiguos' },
+  { valor: 'comentados', etiqueta: 'Más comentados' },
+];
+
+/** Feed de publicaciones con orden configurable y lotes que no repiten. */
 export class FeedView {
   readonly raiz: HTMLElement;
   private lista: HTMLElement;
   private botonActualizar: HTMLButtonElement;
+  private selector: HTMLSelectElement;
   private vistos = new Set<number>();
   private cargando = false;
-  private agotado = false;
+  private orden: OrdenFeed = 'recientes';
 
   constructor(private ctx: ContextoBlog) {
     this.botonActualizar = el(
@@ -22,6 +30,27 @@ export class FeedView {
       icono('navegador', 16),
       el('span', { texto: 'Actualizar' }),
     );
+
+    const publicar = el(
+      'button',
+      { clase: 'btn btn--primary', attrs: { type: 'button' } },
+      icono('imagen', 16),
+      el('span', { texto: 'Publicar' }),
+    );
+    publicar.addEventListener('click', () => this.ctx.alEditor());
+
+    this.selector = el('select', {
+      clase: 'feed__orden',
+      attrs: { 'aria-label': 'Ordenar publicaciones' },
+    });
+    for (const orden of ORDENES) {
+      const opcion = el('option', { attrs: { value: orden.valor }, texto: orden.etiqueta });
+      this.selector.append(opcion);
+    }
+    this.selector.addEventListener('change', () => {
+      this.orden = this.selector.value as OrdenFeed;
+      void this.cargar(true);
+    });
 
     this.lista = el('div', { clase: 'feed__list', attrs: { 'aria-live': 'polite' } });
 
@@ -37,7 +66,7 @@ export class FeedView {
           el('h2', { clase: 'feed__title', texto: 'Últimas publicaciones' }),
           el('p', { clase: 'feed__sub', texto: 'Un blog del sistema, sobre el sistema.' }),
         ),
-        this.botonActualizar,
+        el('div', { clase: 'feed__controles' }, this.selector, this.botonActualizar, publicar),
       ),
       this.lista,
     );
@@ -60,24 +89,19 @@ export class FeedView {
 
     if (reiniciar) {
       this.vistos.clear();
-      this.agotado = false;
       this.lista.replaceChildren(this.esqueleto(), this.esqueleto());
     }
 
     try {
-      const { posts } = await api.listarPosts([...this.vistos], LOTE);
+      let posts = await this.pedir();
+
+      /* Si el lote se agotó, se reinicia el ciclo una sola vez. */
+      if (posts.length === 0 && this.vistos.size > 0) {
+        this.vistos.clear();
+        posts = await this.pedir();
+      }
 
       if (posts.length === 0) {
-        if (this.vistos.size > 0) {
-          this.agotado = true;
-          this.lista.append(
-            el('p', {
-              clase: 'feed__aviso',
-              texto: 'Ya viste todo. Pulsa "Actualizar" para empezar de nuevo.',
-            }),
-          );
-          this.vistos.clear();
-        }
         if (reiniciar) this.lista.replaceChildren(this.vacio());
         return;
       }
@@ -88,31 +112,26 @@ export class FeedView {
         this.vistos.add(post.id);
         this.lista.append(this.tarjeta(post));
       }
-
-      if (reiniciar) {
-        this.lista.append(
-          el(
-            'button',
-            { clase: 'btn btn--primary feed__publicar', attrs: { type: 'button' } },
-            icono('imagen', 16),
-            el('span', { texto: 'Publicar' }),
-          ),
-        );
-        const publicar = this.lista.querySelector<HTMLButtonElement>('.feed__publicar');
-        publicar?.addEventListener('click', () => this.ctx.alEditor());
-      }
     } catch (error) {
       if (reiniciar) this.lista.replaceChildren(this.error(error));
     } finally {
       this.cargando = false;
       this.botonActualizar.disabled = false;
-      void this.agotado;
     }
+  }
+
+  private async pedir(): Promise<Publicacion[]> {
+    const { posts } = await api.listarPosts([...this.vistos], LOTE, this.orden);
+    return posts;
   }
 
   private tarjeta(post: Publicacion): HTMLElement {
     const usuario = this.ctx.usuario();
     const propia = usuario?.id === post.user_id;
+
+    const autor = el('span', { clase: 'post-card__autor' }, el('strong', { texto: post.username }));
+    const insignias = crearInsignias(post);
+    if (insignias) autor.append(insignias);
 
     const cabecera = el(
       'header',
@@ -121,7 +140,7 @@ export class FeedView {
       el(
         'div',
         { clase: 'post-card__quien' },
-        el('strong', { texto: post.username }),
+        autor,
         el('time', { texto: fechaRelativa(post.created_at) }),
       ),
     );

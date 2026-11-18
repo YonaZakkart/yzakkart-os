@@ -36,7 +36,7 @@ export async function usuarioDeSesion(req: VercelRequest): Promise<Usuario | nul
   if (!token) return null;
 
   const resultado = await getDb().execute({
-    sql: `SELECT u.id, u.username, u.is_guest
+    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token],
@@ -49,6 +49,8 @@ export async function usuarioDeSesion(req: VercelRequest): Promise<Usuario | nul
     id: Number(fila.id),
     username: String(fila.username),
     is_guest: Number(fila.is_guest) === 1 ? 1 : 0,
+    badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
+    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0,
   };
 }
 

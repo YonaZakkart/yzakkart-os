@@ -70,7 +70,7 @@ async function usuarioDeSesion(req) {
   const token = tokenDe(req);
   if (!token) return null;
   const resultado = await getDb().execute({
-    sql: `SELECT u.id, u.username, u.is_guest
+    sql: `SELECT u.id, u.username, u.is_guest, u.badge_gold, u.badge_yz
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token]
@@ -80,7 +80,9 @@ async function usuarioDeSesion(req) {
   return {
     id: Number(fila.id),
     username: String(fila.username),
-    is_guest: Number(fila.is_guest) === 1 ? 1 : 0
+    is_guest: Number(fila.is_guest) === 1 ? 1 : 0,
+    badge_gold: Number(fila.badge_gold) === 1 ? 1 : 0,
+    badge_yz: Number(fila.badge_yz) === 1 ? 1 : 0
   };
 }
 async function requireUser(req, res) {
@@ -167,7 +169,9 @@ function armar(fila, reacciones, mias) {
     created_at: String(fila.created_at),
     updated_at: fila.updated_at ? String(fila.updated_at) : null,
     reactiones: reacciones.get(id) ?? {},
-    miReaccion: mias.get(id) ?? null
+    miReaccion: mias.get(id) ?? null,
+    badge_gold: Number(fila.badge_gold) === 1,
+    badge_yz: Number(fila.badge_yz) === 1
   };
 }
 async function listar(req, res) {

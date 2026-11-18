@@ -83,6 +83,13 @@ export const sesion = {
     return enCurso;
   },
 
+  /** Refresca el usuario en memoria y en el navegador (por ejemplo, tras una insignia). */
+  actualizarUsuario(user: Usuario): void {
+    actual = user;
+    const guardada = leer();
+    if (guardada) escribir({ token: guardada.token, user });
+  },
+
   /** Guarda una sesión recién emitida (registro, verificación o login). */
   adoptar(token: string, user: Usuario): void {
     guardarToken(token);

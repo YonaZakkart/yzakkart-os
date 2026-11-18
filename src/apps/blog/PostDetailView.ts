@@ -1,6 +1,7 @@
 import type { Comentario, Publicacion } from '../../models/types';
 import { el, icono } from '../../os/dom';
 import { api, urlImagen } from '../../services/api';
+import { crearInsignias } from './Insignias';
 import { ReactionBar } from './ReactionBar';
 import type { ContextoBlog } from './contexto';
 import { fechaLarga, fechaRelativa } from './tiempo';
@@ -74,7 +75,7 @@ export class PostDetailView {
         el(
           'div',
           { clase: 'entrada__quien' },
-          el('strong', { texto: post.username }),
+          this.autorConInsignias(post),
           el('time', { texto: fechaLarga(post.created_at), attrs: { datetime: post.created_at } }),
         ),
       ),
@@ -133,6 +134,21 @@ export class PostDetailView {
 
     articulo.append(this.barra.raiz);
     this.contenido.replaceChildren(articulo, this.bloqueComentarios(post, comments));
+  }
+
+  private autorConInsignias(autor: {
+    username: string;
+    badge_gold: boolean;
+    badge_yz: boolean;
+  }): HTMLElement {
+    const contenedor = el(
+      'span',
+      { clase: 'post-card__autor' },
+      el('strong', { texto: autor.username }),
+    );
+    const insignias = crearInsignias(autor);
+    if (insignias) contenedor.append(insignias);
+    return contenedor;
   }
 
   private bloqueComentarios(post: Publicacion, comments: Comentario[]): HTMLElement {
@@ -213,7 +229,7 @@ export class PostDetailView {
           clase: 'avatar avatar--chico',
           texto: comentario.username.slice(0, 1).toUpperCase(),
         }),
-        el('strong', { texto: comentario.username }),
+        this.autorConInsignias(comentario),
         el('time', { texto: fechaRelativa(comentario.created_at) }),
         comentario.updated_at
           ? el('span', { clase: 'comentario__editado', texto: 'editado' })
