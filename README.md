@@ -11,6 +11,22 @@ compartido) y una terminal con comandos y alguna que otra trampa.
 - **Datos**: SQLite en la nube (Turso / libSQL)
 - **Despliegue**: Vercel
 
+## Probar el CRUD en un minuto
+
+1. Abre el sitio y haz clic en la PC.
+2. Espera el arranque y abre el icono **Navegador**.
+3. Ya eres `Invitado_XXXX`: pulsa **Publicar**, escribe un título y un texto, guarda.
+4. Abre tu publicación para **editarla**, **comentarla** y **reaccionar**.
+5. Recarga la página: todo sigue ahí.
+
+No hace falta registrarse. Si quieres probar el registro, entra en tu cuenta desde el encabezado del
+blog: el código de verificación se muestra en pantalla (el proyecto no envía correos reales).
+
+## La broma
+
+El blog tiene una publicación que recomienda un comando para "tener más FPS". Ábrela, ve a la
+Terminal y ejecútalo. No borra nada de verdad: apaga la PC virtual.
+
 ## Stack
 
 | Capa | Tecnología |
@@ -24,8 +40,17 @@ compartido) y una terminal con comandos y alguna que otra trampa.
 
 ```bash
 pnpm install
-pnpm dev          # solo frontend
-vercel dev        # frontend + funciones de api/ (recomendado)
+pnpm dev          # frontend + funciones de api/ (servidor local propio)
+```
+
+`pnpm dev` monta las funciones de `api/` dentro del servidor de Vite y lee `.env.local`, así que el
+blog funciona sin instalar la CLI de Vercel.
+
+Para usar la CLI de Vercel:
+
+```bash
+vercel env pull   # baja las variables del proyecto
+vercel dev        # frontend + api/ con el runtime de Vercel
 ```
 
 Verificaciones:
@@ -39,18 +64,36 @@ pnpm build
 
 ## Base de datos
 
-Variables de entorno necesarias (en `.env.local` y en Vercel):
+Variables de entorno necesarias (en `.env.local` y en Vercel → Settings → Environment Variables):
 
 ```
 TURSO_DATABASE_URL=...
 TURSO_AUTH_TOKEN=...
 ```
 
-Carga inicial:
+Carga inicial (una sola vez por entorno):
 
 ```bash
 turso db shell yzakkart-os < lib/schema.sql
 turso db shell yzakkart-os < lib/seed.sql
+```
+
+La semilla borra el contenido actual y crea 12 publicaciones, 25 comentarios y 26 reacciones de
+usuarios ficticios.
+
+## Despliegue
+
+1. Importar el repositorio en Vercel (framework **Vite**).
+2. Añadir `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` en Production, Preview y Development.
+3. Deploy. `vercel.json` ya define el build, las funciones y el rewrite del SPA.
+
+## Estructura
+
+```
+api/     funciones serverless (auth, posts, comments, reactions, image)
+lib/     código compartido del servidor (db, auth, validate, http, SQL)
+public/  estáticos (favicon, wallpapers)
+src/     frontend: os/, apps/, models/, services/, styles/
 ```
 
 ## Licencia
