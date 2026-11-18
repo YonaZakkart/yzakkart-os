@@ -53,4 +53,14 @@ sesion.asegurar().catch(() => {
   /* sin red: el blog mostrará su propio error al abrirse */
 });
 
-mostrarMesa();
+try {
+  mostrarMesa();
+} catch (error) {
+  raiz.replaceChildren(
+    Object.assign(document.createElement('pre'), {
+      textContent: `FALLO AL INICIAR:\n${(error as Error).message}\n${(error as Error).stack ?? ''}`,
+      style:
+        'padding:24px;color:#fff;background:#300;font:12px monospace;white-space:pre-wrap;height:100vh;margin:0',
+    }),
+  );
+}

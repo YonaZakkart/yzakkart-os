@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { esPropietario, requireUser } from '../lib/auth';
+import { esPropietario, requireUser, usuarioDeSesion } from '../lib/auth';
 import { getDb } from '../lib/db';
 import { conManejoDeErrores, entero, fail, leerCuerpo, ok, texto } from '../lib/http';
 import {
@@ -65,10 +65,30 @@ async function conteosDeComentarios(ids: number[]): Promise<Map<number, number>>
   return mapa;
 }
 
+async function reaccionesPropias(
+  userId: number | undefined,
+  ids: number[],
+): Promise<Map<number, string>> {
+  const mapa = new Map<number, string>();
+  if (!userId || ids.length === 0) return mapa;
+
+  const resultado = await getDb().execute({
+    sql: `SELECT post_id, kind FROM post_reactions
+          WHERE user_id = ? AND post_id IN (${marcadores(ids.length)})`,
+    args: [userId, ...ids],
+  });
+
+  for (const fila of resultado.rows) {
+    mapa.set(Number(fila.post_id), String(fila.kind));
+  }
+  return mapa;
+}
+
 function armarPublicacion(
   fila: FilaPost,
   reacciones: Map<number, Record<string, number>>,
   comentarios: Map<number, number>,
+  mias: Map<number, string>,
 ): Publicacion {
   const id = Number(fila.id);
   return {
@@ -81,6 +101,7 @@ function armarPublicacion(
     created_at: String(fila.created_at),
     updated_at: fila.updated_at ? String(fila.updated_at) : null,
     reactiones: reacciones.get(id) ?? {},
+    miReaccion: mias.get(id) ?? null,
     comentarios: comentarios.get(id) ?? 0,
   };
 }
@@ -110,13 +131,15 @@ async function listar(req: VercelRequest, res: VercelResponse): Promise<void> {
 
   const filas = resultado.rows as unknown as FilaPost[];
   const ids = filas.map((f) => Number(f.id));
-  const [reacciones, comentarios] = await Promise.all([
+  const usuario = await usuarioDeSesion(req);
+  const [reacciones, comentarios, mias] = await Promise.all([
     conteosDeReacciones(ids),
     conteosDeComentarios(ids),
+    reaccionesPropias(usuario?.id, ids),
   ]);
 
   const posts = filas
-    .map((f) => armarPublicacion(f, reacciones, comentarios))
+    .map((f) => armarPublicacion(f, reacciones, comentarios, mias))
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   ok(res, { posts });
@@ -139,11 +162,13 @@ async function detalle(req: VercelRequest, res: VercelResponse): Promise<void> {
     return;
   }
 
-  const [reacciones, comentarios] = await Promise.all([
+  const usuario = await usuarioDeSesion(req);
+  const [reacciones, comentarios, mias] = await Promise.all([
     conteosDeReacciones([id]),
     conteosDeComentarios([id]),
+    reaccionesPropias(usuario?.id, [id]),
   ]);
-  ok(res, { post: armarPublicacion(fila, reacciones, comentarios) });
+  ok(res, { post: armarPublicacion(fila, reacciones, comentarios, mias) });
 }
 
 async function estadisticas(res: VercelResponse): Promise<void> {
@@ -204,7 +229,7 @@ async function crear(req: VercelRequest, res: VercelResponse): Promise<void> {
     args: [id],
   });
   const fila = resultado.rows[0] as unknown as FilaPost;
-  ok(res, { post: armarPublicacion(fila, new Map(), new Map()) }, 201);
+  ok(res, { post: armarPublicacion(fila, new Map(), new Map(), new Map()) }, 201);
 }
 
 async function editar(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -287,11 +312,12 @@ async function editar(req: VercelRequest, res: VercelResponse): Promise<void> {
     args: [id],
   });
   const fila = resultado.rows[0] as unknown as FilaPost;
-  const [reacciones, comentarios] = await Promise.all([
+  const [reacciones, comentarios, mias] = await Promise.all([
     conteosDeReacciones([id]),
     conteosDeComentarios([id]),
+    reaccionesPropias(usuario.id, [id]),
   ]);
-  ok(res, { post: armarPublicacion(fila, reacciones, comentarios) });
+  ok(res, { post: armarPublicacion(fila, reacciones, comentarios, mias) });
 }
 
 async function eliminar(req: VercelRequest, res: VercelResponse): Promise<void> {

@@ -14,6 +14,7 @@ export interface Publicacion {
   created_at: string;
   updated_at: string | null;
   reactiones: Record<string, number>;
+  miReaccion: string | null;
   comentarios: number;
 }
 
@@ -26,6 +27,7 @@ export interface Comentario {
   created_at: string;
   updated_at: string | null;
   reactiones: Record<string, number>;
+  miReaccion: string | null;
 }
 
 export interface Estadisticas {

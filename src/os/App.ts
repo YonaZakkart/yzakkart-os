@@ -2,7 +2,8 @@ export interface App {
   readonly id: string;
   readonly titulo: string;
   readonly icono: string;
-  montar(contenedor: HTMLElement): void;
+  /** `cerrar` permite que la app cierre su propia ventana (botón [X]). */
+  montar(contenedor: HTMLElement, cerrar?: () => void): void;
   desmontar(): void;
 }
 
@@ -13,10 +14,12 @@ export abstract class AppBase implements App {
   abstract readonly icono: string;
 
   protected raiz: HTMLElement | null = null;
+  protected cerrarVentana: (() => void) | null = null;
   private liberadores: (() => void)[] = [];
 
-  montar(contenedor: HTMLElement): void {
+  montar(contenedor: HTMLElement, cerrar?: () => void): void {
     this.raiz = contenedor;
+    this.cerrarVentana = cerrar ?? null;
     contenedor.classList.add('app', `app--${this.id}`);
     this.construir(contenedor);
   }
