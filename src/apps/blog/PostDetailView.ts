@@ -60,7 +60,7 @@ export class PostDetailView {
 
   private pintar(post: Publicacion, comments: Comentario[]): void {
     const usuario = this.ctx.usuario();
-    const propia = usuario?.id === post.user_id;
+    const propia = usuario?.id === post.user_id || usuario?.is_admin === 1;
 
     const articulo = el(
       'article',
@@ -160,7 +160,9 @@ export class PostDetailView {
     }
 
     for (const comentario of comments) {
-      lista.append(this.comentario(comentario, usuario?.id === comentario.user_id));
+      lista.append(
+        this.comentario(comentario, usuario?.id === comentario.user_id || usuario?.is_admin === 1),
+      );
     }
 
     const area = el('textarea', {

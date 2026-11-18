@@ -127,7 +127,7 @@ export class FeedView {
 
   private tarjeta(post: Publicacion): HTMLElement {
     const usuario = this.ctx.usuario();
-    const propia = usuario?.id === post.user_id;
+    const propia = usuario?.id === post.user_id || usuario?.is_admin === 1;
 
     const autor = el('span', { clase: 'post-card__autor' }, el('strong', { texto: post.username }));
     const insignias = crearInsignias(post);

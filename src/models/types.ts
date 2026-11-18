@@ -4,6 +4,7 @@ export interface Usuario {
   is_guest: 0 | 1;
   badge_gold: 0 | 1;
   badge_yz: 0 | 1;
+  is_admin: 0 | 1;
 }
 
 export type OrdenFeed = 'recientes' | 'antiguos' | 'comentados';

@@ -48,6 +48,30 @@ export class AccountView {
     );
   }
 
+  /** Mensaje de éxito con un solo botón; al aceptar se vuelve al blog. */
+  private mostrarExito(mensaje: string, alAceptar: () => void): void {
+    const dialogo = el('dialog', { clase: 'dialogo dialogo--exito' });
+    const aceptar = el('button', {
+      clase: 'btn btn--primary',
+      attrs: { type: 'button' },
+      texto: 'Aceptar',
+    });
+
+    aceptar.addEventListener('click', () => {
+      dialogo.close();
+      dialogo.remove();
+      alAceptar();
+    });
+
+    dialogo.append(
+      el('h3', { clase: 'dialogo__title', texto: mensaje }),
+      el('div', { clase: 'dialogo__acciones' }, aceptar),
+    );
+
+    this.raiz.append(dialogo);
+    dialogo.showModal();
+  }
+
   private perfil(nombre: string): HTMLElement {
     const salir = el('button', {
       clase: 'btn btn--danger',
@@ -123,6 +147,7 @@ export class AccountView {
         entradaToken.value = '';
         pintarEstado();
         this.ctx.actualizarEncabezado();
+        this.mostrarExito('El equipo de YZakkart agradece tu apoyo', () => this.ctx.alFeed());
       } catch (error) {
         aviso.textContent = error instanceof Error ? error.message : 'No se pudo canjear.';
       } finally {
@@ -167,6 +192,8 @@ export class AccountView {
         pintarEstado();
         this.ctx.actualizarEncabezado();
         dialogo.close();
+        dialogo.remove();
+        this.mostrarExito('El equipo de YZakkart agradece tu apoyo', () => this.ctx.alFeed());
       } catch {
         aviso.textContent = 'No se pudo guardar la insignia. Intenta de nuevo.';
       }
@@ -296,7 +323,7 @@ export class AccountView {
         const sesionNueva = await api.verificar(entrada.value.trim());
         sesion.adoptar(sesionNueva.token, sesionNueva.user);
         this.ctx.actualizarEncabezado();
-        this.pintar();
+        this.mostrarExito('Cuenta creada con éxito', () => this.ctx.alFeed());
       } catch (error) {
         aviso.textContent = error instanceof Error ? error.message : 'No se pudo verificar.';
         verificar.disabled = false;
