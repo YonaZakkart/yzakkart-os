@@ -1,0 +1,30 @@
+{
+  "name": "yzakkart-os",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "YZakkartOS: una computadora ficticia dentro del navegador, con blog compartido y terminal.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run",
+    "db:schema": "turso db shell yzakkart-os < lib/schema.sql",
+    "db:seed": "turso db shell yzakkart-os < lib/seed.sql"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "bcryptjs": "^3.0.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.10.2",
+    "@vercel/node": "^5.1.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}
